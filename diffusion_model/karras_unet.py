@@ -14,7 +14,7 @@ import torch.nn.functional as F
 
 from einops import rearrange, repeat, pack, unpack
 
-from denoising_diffusion_pytorch.attend import Attend
+from diffusion_model.attend import Attend
 
 # helpers functions
 

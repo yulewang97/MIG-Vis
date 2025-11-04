@@ -36,10 +36,10 @@ logging.basicConfig(level=logging.INFO)
 
 from accelerate import Accelerator
 
-from denoising_diffusion_pytorch.attend import Attend
+from diffusion_model.attend import Attend
 from infonce_model.model import InfoNCE_Net
 
-from denoising_diffusion_pytorch.version import __version__
+from diffusion_model.version import __version__
 
 # constants
 
@@ -1296,7 +1296,7 @@ class Trainer:
         self.calculate_fid = calculate_fid and self.accelerator.is_main_process
 
         if self.calculate_fid:
-            from denoising_diffusion_pytorch.fid_evaluation import FIDEvaluation
+            from diffusion_model.fid_evaluation import FIDEvaluation
 
             if not is_ddim_sampling:
                 self.accelerator.print(
