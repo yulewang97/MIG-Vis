@@ -35,29 +35,18 @@ class Decoder(nn.Module):
         # self.fc1 = nn.Linear(self.latent_size, 64)
         # self.fc2 = nn.Linear(32, 64)
         self.fc_x = nn.Linear(self.latent_size, input_dim)
-        self.fc_category = nn.Sequential(
-            nn.Linear(self.group_rank, 8),
-            # nn.ReLU(),
-            # nn.Linear(self.hidden_dim_1, self.hidden_dim_1),
-            # nn.ReLU(),
-            # nn.Linear(self.hidden_dim_1, self.label_dim)
-        )
-        # il is short for the image latents
-        self.il_pointwise = nn.Parameter(torch.Tensor(self.label_dim-1))
-        init.normal_(self.il_pointwise, mean=0.0, std=0.01)
+        self.fc_category = nn.Linear(self.group_rank, 1)
+
+        self.dimwise_scale = nn.Parameter(torch.Tensor(self.label_dim-1))
+        init.normal_(self.dimwise_scale, mean=0.0, std=0.01)
 
 
     def forward(self, z):
         # Pass through the network with ReLU activations
-
-        # x = F.relu(self.fc1(z))
-        # x = F.relu(self.fc2(x))
-        # Use sigmoid for output activation if input data is normalized to [0, 1]
-        # recon_x = (self.fc3(z))
         recon_x = self.fc_x(z)
 
         # Predicting the labels
-        recon_y_pose = z[:, :self.label_dim - 1].mul(self.il_pointwise)
+        recon_y_pose = z[:, :self.group_rank].mul(self.dimwise_scale)
         recon_y_category = self.fc_category(z[:, self.group_rank:self.group_rank * 2])
         return recon_x, recon_y_pose, recon_y_category
 
@@ -70,8 +59,6 @@ class NeuralVAE(nn.Module):
         self.group_rank = group_rank
         self.kl_weight = kl_weight
         self.tc_weight = tc_weight
-        self.guidance_weight = guidance_weight
-        self.group_rank = self.group_rank
         self.n_groups = self.latent_size // self.group_rank
         self.category_criterion = nn.CrossEntropyLoss()
         self.encoder = Encoder(input_dim=input_dim, latent_size=latent_size)
@@ -126,8 +113,6 @@ class NeuralVAE(nn.Module):
                 reduction="none",
             )  # (n_monte_carlo = batch_size, batch_size, n_groups, group_rank)
 
-            # print(f'mat_ln_q_z shape: {mat_ln_q_z.shape}')
-
             reweights = (
                 torch.ones(batch_size, batch_size, device=z.device)
                 / (batch_size - 1)
@@ -136,21 +121,14 @@ class NeuralVAE(nn.Module):
             reweights[torch.arange(batch_size), torch.arange(batch_size)] = 1
             reweights = reweights.log()
 
-            # print(f'reweights shape: {reweights.shape}')
-
             ln_q_z = torch.logsumexp(
                 mat_ln_q_z.sum(dim=(2, 3)) + reweights, dim=1
             ) - np.log(n_total_samples)
-
-            # print(f'ln_q_z shape: {ln_q_z.shape}')
 
             ln_prod_q_zi = (
                 torch.logsumexp(mat_ln_q_z.sum(dim=3) + reweights[:, :, None], dim=1)
                 - np.log(n_total_samples)
             ).sum(dim=1)
-
-            # print(f'ln_prod_q_zi shape: {ln_prod_q_zi.shape}')
-
 
             # mat_ln_q_z shape: torch.Size([64, 64, 16, 1])
             # reweights shape: torch.Size([64, 64])
@@ -181,12 +159,7 @@ class NeuralVAE(nn.Module):
         # Reconstruction loss (Mean Squared Error or Binary Cross-Entropy)
         recon_loss = F.mse_loss(recon_x, x, reduction='mean')
 
-        label_pose_loss = F.mse_loss(y_hat_pose, y[:,:6], reduction='mean')
-        # print("min:", y[:,6].min().item(), "max:", y[:,6].max().item())
-        # print("y_hat_category shape:", y_hat_category.shape)
-        # target = y[:,6].to(torch.long)
-        # logits = y_hat_category
-        # n_classes = logits.shape[1]
+        label_pose_loss = F.mse_loss(y_hat_pose, y[:,:self.group_rank], reduction='mean')
 
         # assert (target >= 0).all(), "Negative labels!"
         # assert (target < n_classes).all(), f"Label out of range! Got max {target.max()}, but only {n_classes} classes."
