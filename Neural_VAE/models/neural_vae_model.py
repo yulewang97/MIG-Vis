@@ -31,11 +31,12 @@ class Decoder(nn.Module):
         self.label_dim = label_dim
         self.hidden_dim_1 = 32
         self.group_rank = 6
+        self.category_num = 8
         # Fully connected layers for decoding
         # self.fc1 = nn.Linear(self.latent_size, 64)
         # self.fc2 = nn.Linear(32, 64)
         self.fc_x = nn.Linear(self.latent_size, input_dim)
-        self.fc_category = nn.Linear(self.group_rank, 1)
+        self.fc_category = nn.Linear(self.group_rank, self.category_num)
 
         self.dimwise_scale = nn.Parameter(torch.Tensor(self.label_dim-1))
         init.normal_(self.dimwise_scale, mean=0.0, std=0.01)
