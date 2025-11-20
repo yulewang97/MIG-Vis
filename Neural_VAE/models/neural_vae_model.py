@@ -58,7 +58,7 @@ class Decoder(nn.Module):
 
         # Predicting the labels
         recon_y_pose = z[:, :self.label_dim - 1].mul(self.il_pointwise)
-        recon_y_category = self.fc_category(z[:, 6:12])
+        recon_y_category = self.fc_category(z[:, self.group_rank:self.group_rank * 2])
         return recon_x, recon_y_pose, recon_y_category
 
 
