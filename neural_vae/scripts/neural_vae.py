@@ -12,21 +12,25 @@ from torch.utils.data import Dataset, DataLoader
 
 import numpy as np
 import wandb
+from utils_scripts.utils_torch import get_logger
+
+
+logger = get_logger(__name__)
 
 
 args = parse_args()
 
-print("Training Configuration:")
+logger.info("Training Configuration:")
 
 config = vars(args)
-print(config)
+logger.info(config)
 
-print(f"\n--- Device Check ---")
+logger.info(f"\n--- Device Check ---")
 if torch.cuda.is_available():
     for i in range(torch.cuda.device_count()):
-        print(f"[GPU {i}] {torch.cuda.get_device_name(i)}")
+        logger.info(f"[GPU {i}] {torch.cuda.get_device_name(i)}")
 else:
-    print("No GPU available. Using CPU.")
+    logger.info("No GPU available. Using CPU.")
 
 
 neural_data_name = 'sorted_it_avg_data'
@@ -41,8 +45,8 @@ stimulus_data = np.concatenate((stimulus_data_pos, stimulus_data_category), axis
 neural_data = np.load(neural_data_file).astype(np.float32)[:,:58]
 neural_dim, stimulus_dim = neural_data.shape[-1], stimulus_data.shape[-1]
 
-print(f"neural_data shape: {neural_data.shape}")
-print(f"stimulus_data shape: {stimulus_data.shape}")
+logger.info(f"neural_data shape: {neural_data.shape}")
+logger.info(f"stimulus_data shape: {stimulus_data.shape}")
 
 
 def train_vae(model, train_dataloader, optimizer, num_epochs=200, device='cpu', record_training = False):
@@ -66,7 +70,7 @@ def train_vae(model, train_dataloader, optimizer, num_epochs=200, device='cpu', 
             recon_x, recon_y_pose, recon_y_category, mu, z, logvar = model(neural_batch)
 
             # if i == 0:
-                # print(f"reconstructed_images testue: {reconstructed_images[0]}")
+                # logger.info(f"reconstructed_images testue: {reconstructed_images[0]}")
             # Calculate the VAE loss
             loss, recon_loss, label_loss, kl_loss, tc_loss = model.guide_vae_loss(recon_x, neural_batch, recon_y_pose, recon_y_category, stimulus_batch, z, mu, logvar)
             
@@ -117,9 +121,9 @@ def train_vae(model, train_dataloader, optimizer, num_epochs=200, device='cpu', 
                 }, step=epoch)
 
         if epoch == 0 or (epoch + 1) % 25 == 0:
-            # print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}")
-            # print(f"Epoch [{epoch+1}/{num_epochs}], Recon Loss: {t_recon_loss:.4f}, Test Loss: {test_loss:.4f}")
-            print("Test Evaluation at epoch {}:".format(epoch + 1))
+            # logger.info(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}")
+            # logger.info(f"Epoch [{epoch+1}/{num_epochs}], Recon Loss: {t_recon_loss:.4f}, Test Loss: {test_loss:.4f}")
+            logger.info("Test Evaluation at epoch {}:".format(epoch + 1))
             neural_r2, stimulus_r2, neural_rmse, stimulus_rmse = evaluate_vae_on_loader(model, test_dataloader, mode="test", device=device)
             if record_training:
                 wandb.log({
@@ -129,7 +133,7 @@ def train_vae(model, train_dataloader, optimizer, num_epochs=200, device='cpu', 
                         "stimulus_rmse": stimulus_rmse
                     }, step=epoch)
 
-    print(f"Training Finished with seed {seed}")
+    logger.info(f"Training Finished with seed {seed}")
     return model
 
 
@@ -167,7 +171,7 @@ train_r2_neural_results, test_r2_neural_results = list(), list()
 train_r2_stimulus_results, test_r2_stimulus_results = list(), list()
 
 for id, seed in enumerate(random_seeds):
-    # print(f"\nTraining with seed: {type(seed)}\n")
+    # logger.info(f"\nTraining with seed: {type(seed)}\n")
     
     set_random_seed(int(seed))
 
@@ -217,11 +221,10 @@ with torch.no_grad():
         full_neural_recons.append(recon_neural_batch.cpu())
         full_pose_recons.append(recon_pose_batch.cpu())
         full_category_recons.append(recon_category_batch.cpu())
-        # loss = vae_loss(reconstructed_images, images, mu, logvar)
+
 
 full_latents = np.vstack(full_latents)
 full_neural_recons = np.vstack(full_neural_recons)
 full_pose_recons = np.vstack(full_pose_recons)
 full_category_recons = np.vstack(full_category_recons)
-
 

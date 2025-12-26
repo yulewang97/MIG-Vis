@@ -954,22 +954,9 @@ class GaussianDiffusion(Module):
 
         b, c, h, w = xt.shape
         device = self.device
-        # t = torch.full((b,), edit_t, device=device, dtype=torch.long)
-
-        # Normalize and add noise at step t
-        # x_start = diffusion_model.normalize(x_start)
-        # xt = diffusion_model.q_sample(x_start=x_start, t=t)
 
         img = xt
-        # x_start_pred = None
-        # imgs = [img]
 
-        # for step in tqdm(reversed(range(0, edit_t + 1)), desc="SDEdit p_sample Sampling"):
-        #     # t_step = torch.full((b,), int(step), device=device, dtype=torch.long)
-        #     t_step = int(step)
-        #     self_cond = x_start_pred if diffusion_model.self_condition else None
-        #     img, x_start_pred = diffusion_model.p_sample(img, t_step, x_self_cond=self_cond)
-        #     imgs.append(img)
         batch, device, total_timesteps, sampling_timesteps, eta, objective = shape[0], self.device, edit_t, self.sampling_timesteps, self.ddim_sampling_eta, self.objective
 
         times = torch.linspace(-1, total_timesteps - 1, steps = sampling_timesteps + 1)   # [-1, 0, 1, 2, ..., T-1] when sampling_timesteps == total_timesteps
@@ -1138,11 +1125,11 @@ class GaussianDiffusion(Module):
 
 def add_custom_augmentations():
     return T.Compose([
-        T.Lambda(lambda x: x + 0.05 * torch.randn_like(x)),                     # 加小幅 Gaussian noise
-        T.Lambda(lambda x: torch.clamp(x * 1.05 + 0.01, 0.0, 1.0)),             # 简单亮度/对比增强
-        T.RandomHorizontalFlip(p=0.5),                                          # 随机水平翻转
-        # T.RandomRotation(degrees=10, translate=(0.05, 0.05), fill=0),           # 新增：±10° 旋转，黑边填 0
-        T.RandomRotation(degrees=10, fill=0),                                   # 新增：±10° 旋转，黑边填 0
+        T.Lambda(lambda x: x + 0.05 * torch.randn_like(x)),                     
+        T.Lambda(lambda x: torch.clamp(x * 1.05 + 0.01, 0.0, 1.0)),             
+        T.RandomHorizontalFlip(p=0.5),                                          
+        # T.RandomRotation(degrees=10, translate=(0.05, 0.05), fill=0),           
+        T.RandomRotation(degrees=10, fill=0),
     ])
 
 class Dataset(Dataset):
@@ -1437,14 +1424,14 @@ class Trainer:
 
 
 # @torch.inference_mode()
-def sdedit_p_sample(
+def mig_vis_p_sample(
     diffusion_model,
     x_start,               # shape: [B, C, H, W]
     z_pos_index,               # shape: [B, D]
     edit_t = 50           # the diffusion step to start from (e.g., 250 out of 1000)
 ):
     """
-    SDEdit using ancestral sampling (p_sample loop).
+    MIG-Vis using ancestral sampling (p_sample loop).
     
     Args:
         diffusion_model: instance of GaussianDiffusion
@@ -1466,7 +1453,7 @@ def sdedit_p_sample(
     x_start_pred = None
     imgs = [img]
 
-    for step in tqdm(reversed(range(0, edit_t + 1)), desc="SDEdit p_sample Sampling"):
+    for step in tqdm(reversed(range(0, edit_t + 1)), desc="MIG-Vis p_sample Sampling"):
         # t_step = torch.full((b,), int(step), device=device, dtype=torch.long)
         t_step = int(step)
         self_cond = x_start_pred if diffusion_model.self_condition else None
@@ -1476,29 +1463,3 @@ def sdedit_p_sample(
 
     return diffusion_model.unnormalize(img), xt
 
-
-# @torch.no_grad()
-def sdedit_ddim_sample(diffusion_model, x_start, edit_t=50):
-    """
-    SDEdit with DDIM: Add noise to x_start at step t, then sample back to x0.
-    """
-    assert x_start.dim() == 4
-    b, c, h, w = x_start.shape
-    device = diffusion_model.device
-    t_tensor = torch.full((b,), edit_t, device=device, dtype=torch.long)
-
-    # Normalize and get xt via inversion
-    x_start_norm = diffusion_model.normalize(x_start)
-    x_t = diffusion_model.ddim_inversion(x_start_norm, t_tensor)
-
-    x = x_t
-    x_start_pred = None
-    imgs = [x]
-
-    for t in reversed(range(0, edit_t + 1)):
-        self_cond = x_start_pred if diffusion_model.self_condition else None
-        x, x_start_pred = diffusion_model.ddim_sample_step(x, t, x_self_cond=self_cond)
-        imgs.append(x)
-
-    x_final = diffusion_model.unnormalize(x)
-    return x_final, x_t

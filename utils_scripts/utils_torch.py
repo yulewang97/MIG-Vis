@@ -7,6 +7,21 @@ from torch.utils.data import TensorDataset
 import matplotlib.pyplot as plt
 import argparse
 from sklearn.metrics import r2_score, mean_squared_error
+import logging
+import sys
+
+def get_logger(name=__name__):
+    logger = logging.getLogger(name)
+
+    if not logger.handlers:
+        logger.setLevel(logging.INFO)
+        handler = logging.StreamHandler(sys.stdout)
+        formatter = logging.Formatter("%(message)s")
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        logger.propagate = False
+
+    return logger
 
 def set_random_seed(seed=42):
     random.seed(seed)

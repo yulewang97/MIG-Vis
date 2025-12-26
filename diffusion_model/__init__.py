@@ -1,5 +1,5 @@
 from diffusion_model.denoising_diffusion_pytorch import GaussianDiffusion, Unet, Trainer, normalize_to_01
-from diffusion_model.denoising_diffusion_pytorch import sdedit_p_sample, sdedit_ddim_sample
+from diffusion_model.denoising_diffusion_pytorch import mig_vis_p_sample
 
 from diffusion_model.continuous_time_gaussian_diffusion import ContinuousTimeGaussianDiffusion
 from diffusion_model.weighted_objective_gaussian_diffusion import WeightedObjectiveGaussianDiffusion
