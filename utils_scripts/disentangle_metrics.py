@@ -4,8 +4,12 @@ import torch.nn as nn
 import torch.optim as optim
 from sklearn.metrics import accuracy_score
 from torch.utils.data import DataLoader, TensorDataset
-from sklearn.metrics import mutual_info_score
+from sklearn.metrics import mutual_info_score, accuracy_score
 from sklearn.preprocessing import KBinsDiscretizer
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+from sklearn.linear_model import RidgeClassifier
+
 
 def create_latent_pairs(latents, num_samples=10000):
     """
@@ -80,15 +84,7 @@ def factorvae_score(latents, num_samples=10000, num_epochs=10, batch_size=256):
     return acc
 
 
-from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans
-from sklearn.linear_model import RidgeClassifier
-from sklearn.metrics import accuracy_score
-import numpy as np
-
-
 def get_pseudo_factors(stimulus_data, num_clusters=10):
-    # PCA 降维 + KMeans 聚类
     pca = PCA(n_components=min(10, stimulus_data.shape[1]))
     reduced = pca.fit_transform(stimulus_data)
     clusters = KMeans(n_clusters=num_clusters, random_state=0).fit_predict(reduced)
@@ -126,16 +122,13 @@ def compute_unsupervised_sap(latents, stimulus_data, num_clusters=10):
 
 
 def discretize_latents(latents, n_bins=20):
-    """对 continuous latent 进行分箱离散化"""
     est = KBinsDiscretizer(n_bins=n_bins, encode='ordinal', strategy='uniform')
     return est.fit_transform(latents)
 
 def compute_mutual_info(x, y):
-    """计算互信息 MI(x, y)"""
     return mutual_info_score(x, y)
 
 def compute_entropy(x):
-    """计算熵 H(x)"""
     return mutual_info_score(x, x)
 
 def compute_mig(latents, factors, n_bins=20):
@@ -143,7 +136,7 @@ def compute_mig(latents, factors, n_bins=20):
     latents: [N, D] - continuous or discrete latent variables
     factors: [N, K] - discrete ground-truth factors
     """
-    # 离散化 latents
+
     discretized_latents = discretize_latents(latents, n_bins=n_bins)
     
     D = discretized_latents.shape[1]
@@ -160,8 +153,8 @@ def compute_mig(latents, factors, n_bins=20):
             x = discretized_latents[:, d]
             mijs[d, k] = compute_mutual_info(x, y)
 
-    # 对每个 factor，计算前两大的 MI 差值除以 H(y_k)
+
     sorted_mijs = np.sort(mijs, axis=0)[::-1]
-    migs = (sorted_mijs[0] - sorted_mijs[1]) / (entropies + 1e-10)  # 避免除0
+    migs = (sorted_mijs[0] - sorted_mijs[1]) / (entropies + 1e-10)
 
     return np.mean(migs)

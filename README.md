@@ -1,12 +1,12 @@
 ## MIG-Vis: Uncovering Semantic Selectivity of Latent Groups in Higher Visual Cortex with Mutual Information-Guided Diffusion
 
-Official code for **[MIG-Vis](https://arxiv.org/abs/2510.02182)** (ICLR 2026 submission): a framework to visualize and interpret neural latent groups via mutual-information guided diffusion.
+**Authors:** Yule Wang, Joseph Yu, Chengrui Li, Weihan Li, and Anqi Wu, Georgia Tech, USA.
+
+Official code for **[MIG-Vis](https://arxiv.org/abs/2510.02182)** (ICLR 2026 Poster): a framework to visualize and interpret neural latent groups via mutual-information guided diffusion.
 
 ## News
 
 * [2025/12] The abstract version of **[MIG-Vis](https://arxiv.org/abs/2510.02182)** has been accepted as a poster presentation at **[COSYNE 2026](https://www.cosyne.org/)** in Lisbon, Portugal!
-
-
 
 
 ## Overview of the Approach
