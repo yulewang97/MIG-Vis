@@ -1,7 +1,7 @@
 from models.neural_vae_model import NeuralVAE
-from utils_scripts.utils_torch import set_random_seed, zscore_2d, PairwiseDataset, rescale_to_01, rescale_to_minus1_1, zscore_by_column, warmup_then_decay_lr
-from utils_scripts.utils_torch import evaluate_vae_on_loader, parse_args
-from utils_scripts.disentangle_metrics import factorvae_score, compute_unsupervised_sap, compute_mig
+from utils.utils_torch import set_random_seed, zscore_2d, PairwiseDataset, rescale_to_01, rescale_to_minus1_1, zscore_by_column, warmup_then_decay_lr
+from utils.utils_torch import evaluate_vae_on_loader, parse_args
+from utils.disentangle_metrics import factorvae_score, compute_unsupervised_sap, compute_mig
 
 from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
@@ -12,7 +12,7 @@ from torch.utils.data import Dataset, DataLoader
 
 import numpy as np
 import wandb
-from utils_scripts.utils_torch import get_logger
+from utils.utils_torch import get_logger
 
 
 logger = get_logger(__name__)

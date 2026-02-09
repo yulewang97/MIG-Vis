@@ -3,7 +3,7 @@ import numpy as np
 from diffusion_model.denoising_diffusion_pytorch import Unet, GaussianDiffusion, Trainer, normalize_to_01
 from diffusion_model.denoising_diffusion_pytorch import mig_vis_p_sample
 import argparse
-from utils_scripts.utils_torch import get_logger
+from utils.utils_torch import get_logger
 
 
 logger = get_logger(__name__)
